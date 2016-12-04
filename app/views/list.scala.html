@@ -1,22 +1,4 @@
-@(currentPage: Page[User], currentOrderBy: Int, currentFilter: String)(implicit flash: play.api.mvc.Flash, msg: play.api.i18n.Messages)
-
-@****************************************
-* Helper generating navigation links    *
-****************************************@
-@link(newPage: Int, newOrderBy: Option[Int] = None) = @{
-    routes.Application.list(newPage, newOrderBy.map { orderBy =>
-        if(orderBy == scala.math.abs(currentOrderBy)) -currentOrderBy else orderBy
-    }.getOrElse(currentOrderBy), currentFilter)
-}
-
-@**********************************
-* Helper generating table headers *
-***********************************@
-@header(orderBy: Int, title: String) = {
-    <th class="col@orderBy header @if(scala.math.abs(currentOrderBy) == orderBy) @{if(currentOrderBy < 0) "glyphicon glyphicon-chevron-down" else "glyphicon glyphicon-chevron-up"}">
-        <a href="@link(0, Some(orderBy))">@title</a>
-    </th>
-}
+@(users: Seq[User], currentFilter: String)(implicit flash: play.api.mvc.Flash, msg: play.api.i18n.Messages)
 
 @main("play-orangebus") {
 
@@ -29,26 +11,26 @@
 		@flash.get("success").map { message =>
 			<div class="alert alert-dismissable alert-success">
 				<button type="button" class="close" data-dismiss="alert">×</button>
-				<strong>User created!</strong> 
+				<strong>@message</strong> 
 			</div>
 		}
 
 		<div id="actions">
 	
 			@helper.form(action=routes.Application.list(), 'class -> "navbar-form navbar-left", 'role -> "search") {
-				<input type="search" id="searchbox" name="f" value="@currentFilter" placeholder="Filter by user name...">
+				<input type="search" id="searchbox" name="f" value="@currentFilter" placeholder="Filter by user name">
 				<input type="submit" id="searchsubmit" value="Filter" class="btn btn-primary btn-sm"> 
 			} 
 				
 		</div>
 
-		@Option(currentPage.items).filterNot(_.isEmpty).map { users =>
+		@Option(users).filterNot(_.isEmpty).map { users =>
 			<table class="table table-striped">
 				<thead>
 					<tr>
-						@header(2, "Name")
-					 	@header(3, "Email") 
-					 	</tr>
+						<th class="col2 header"><a>Name</th> 
+					 	<th class="col3 header"><a>E-mail</th> 
+					 </tr>
 				</thead>
 				<tbody>
 		
@@ -70,8 +52,7 @@
 			  </div>
 			</div>	
 		}
-      <a class="btn btn-primary btn-sm pull-right" id="add" href="@routes.Application.create()">Add a new user</a>
+      <a class="btn btn-primary btn-sm pull-right" id="add" href="@routes.Application.create()">Add new user</a>
 	</div>
-
 }
 

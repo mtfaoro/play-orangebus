@@ -23,8 +23,9 @@ import play.modules.reactivemongo.{
 import reactivemongo.play.json._, collection.JSONCollection
 import reactivemongo.api.QueryOpts
 import reactivemongo.bson.BSONObjectID
+import reactivemongo.api.Cursor
 
-import models.{ User, JsonFormats, Page }, JsonFormats.userFormat
+import models.{ User, JsonFormats}, JsonFormats.userFormat
 import views.html
 
 class Application @Inject() (
@@ -32,14 +33,8 @@ class Application @Inject() (
   val messagesApi: MessagesApi)
     extends Controller with MongoController with ReactiveMongoComponents {
 
-  implicit val timeout = 10.seconds
-
-  lazy val config = current.configuration
-
-
-
   /**
-   * Describe the employee form (used in both edit and create screens).
+   * Describe the form that will be Used in HTML file
    */
   val userForm = Form(
     mapping(
@@ -58,50 +53,36 @@ class Application @Inject() (
   import models.JsonFormats._
 
   /**
-   * Handle default path requests, redirect to employee list
+   * Handle default path requests, redirect to user list
    */
   def index = Action { Home }
-
-  /**
-   * This result directly redirect to the application home.
-   */
   val Home = Redirect(routes.Application.list())
 
+
   /**
-   * Display the paginated list of employees.
+   * Display Users
    *
-   * @param page Current page number (starts from 0)
-   * @param orderBy Column to be sorted
-   * @param filter Filter applied on employee names
+   * @param filter Filter applied on user names
    */
-  def list(page: Int, orderBy: Int, filter: String) = Action.async { implicit request =>
+  def list(filter: String) = Action.async { implicit request =>
      val mongoFilter = {
       if (filter.length > 0) Json.obj("name" -> filter)
       else Json.obj()
     }
     
-    val sortFilter = Json.obj("name" -> signum(orderBy))
-
-    val pageSize = config.getInt("page.size").filter(_ > 0).getOrElse(20)
-    val offset = page * pageSize
-    val futureTotal = collection.flatMap(_.count(Some(mongoFilter)))
     val filtered = collection.flatMap(
-      _.find(mongoFilter).options(QueryOpts(skipN = page * pageSize)).sort(sortFilter).cursor[User]().collect[List](pageSize))
-
-    futureTotal.zip(filtered).map { case (total, users) => {
-      implicit val msg = messagesApi.preferred(request)
-
-      Ok(html.list(Page(users, page, offset, total), orderBy, filter))
-    }}.recover {
-      case t: TimeoutException =>
-        Logger.error("Problem found in User list process")
-        InternalServerError(t.getMessage)
+      _.find(mongoFilter).cursor[User]().collect[List](Int.MaxValue, Cursor.FailOnError[List[User]]()))
+    
+    filtered.map{
+    	users =>  {
+         implicit val msg = messagesApi.preferred(request)
+         Ok(html.list(users, filter))}
     }
   }
 
 
   /**
-   * Display the 'new employee form'.
+   * Display the user form
    */
   def create = Action { request =>
     implicit val msg = messagesApi.preferred(request)
@@ -109,7 +90,7 @@ class Application @Inject() (
   }
 
   /**
-   * Handle the 'new employee form' submission.
+   * Save a User in the database.
    */
   def save = Action.async { implicit request =>
     userForm.bindFromRequest.fold(
@@ -122,15 +103,7 @@ class Application @Inject() (
 
         futureUpdateEmp.map { result =>
           Home.flashing("success" -> s"User ${user.name} has been created")
-        }.recover {
-          case t: TimeoutException =>
-            Logger.error("Problem found in user update process")
-            InternalServerError(t.getMessage)
         }
       })
   }
-
-  
-
-
 }

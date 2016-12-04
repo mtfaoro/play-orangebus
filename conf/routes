@@ -1,14 +1,5 @@
-# Routes
-# This file defines all application routes (Higher priority routes first)
-# ~~~~
-
-# Default path will just redirect to the employee list
-GET    /                       controllers.Application.index
-
-# Employees list (look at the default values for pagination parameters)
-GET    /users              controllers.Application.list(p: Int ?= 0, s: Int ?= 2, f ?= "")
-
-# Add employee
+GET    /                   controllers.Application.index
+GET    /users              controllers.Application.list(f ?= "")
 GET    /users/new          controllers.Application.create
 POST   /users/save         controllers.Application.save
 
