@@ -1,0 +1,6 @@
+@(userForm: Form[User])(implicit msg: play.api.i18n.Messages)
+
+@import helper._
+
+@inputText(userForm("name"), '_label -> "Name", 'class -> "form-control")
+@inputText(userForm("email"), '_label -> "E-mail", 'class -> "form-control")

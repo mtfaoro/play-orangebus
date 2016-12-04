@@ -1,0 +1,31 @@
+@(title: String)(content: Html)
+
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>@title</title>
+        <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
+        
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" media="screen" href="@routes.WebJarAssets.at(WebJarAssets.locate("bootswatch-cerulean", "bootstrap.min.css"))">
+		<link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+    </head>
+    <body>
+  	    @navbar()
+        @content
+	    <div id="footer">
+	      <div class="container">
+			<p class="text-muted">Play - OrangeBus - 2016</p>
+		</div>
+	    </div>
+        
+        <!-- Bootstrap core JavaScript
+	    ================================================== -->
+	    <!-- Placed at the end of the document so the pages load faster -->
+	    <script src="@routes.WebJarAssets.at(WebJarAssets.locate("jquery.min.js"))"></script>
+	    
+	    <!-- Latest compiled and minified JavaScript -->
+		<script src="@routes.WebJarAssets.at(WebJarAssets.locate("bootswatch-cerulean", "bootstrap.min.js"))"></script>
+    </body>
+</html>
