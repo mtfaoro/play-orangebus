@@ -14,7 +14,7 @@ import play.api.mvc.{ Action, Controller }
 import play.api.data.Form
 import play.api.data.Forms.{ date, ignored, mapping, nonEmptyText }
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.libs.json.Json, Json.toJsFieldJsValueWrapper
+import play.api.libs.json._
 import play.api.Play.current
 
 import play.modules.reactivemongo.{
@@ -27,6 +27,7 @@ import reactivemongo.api.Cursor
 
 import models.{ User, JsonFormats}, JsonFormats.userFormat
 import views.html
+import reactivemongo.bson.BSONDocument
 
 class Application @Inject() (
   val reactiveMongoApi: ReactiveMongoApi,
@@ -65,8 +66,8 @@ class Application @Inject() (
    * @param filter Filter applied on user names
    */
   def list(filter: String) = Action.async { implicit request =>
-     val mongoFilter = {
-      if (filter.length > 0) Json.obj("name" -> filter)
+    val mongoFilter = {
+      if (filter.length > 0) Json.obj("name" -> Json.obj("$regex" -> (filter + ".*"))) 
       else Json.obj()
     }
     
@@ -99,11 +100,53 @@ class Application @Inject() (
         Future.successful(BadRequest(html.createForm(formWithErrors)))
       },
       user => {
-        val futureUpdateEmp = collection.flatMap(_.insert(user.copy(_id = BSONObjectID.generate)))
+        val futureUser = collection.flatMap(_.insert(user.copy(_id = BSONObjectID.generate)))
 
-        futureUpdateEmp.map { result =>
+        futureUser.map { result =>
           Home.flashing("success" -> s"User ${user.name} has been created")
         }
       })
   }
+
+  /**
+   * WebService responsible to return users in a json
+   */
+  def getUsersWebService(name: String ) = Action.async { implicit request => 
+    val mongoFilter = {
+      if (name.length > 0) Json.obj("name" -> Json.obj("$regex" -> (name + ".*"))) 
+      else Json.obj()
+    }
+
+    val projection = Json.obj("_id" -> 0)
+    val filtered = collection.flatMap(
+      _.find(mongoFilter, projection).cursor[BSONDocument]().collect[List](Int.MaxValue, Cursor.FailOnError[List[BSONDocument]]()))
+    
+    filtered.map{
+    	users =>  Ok(Json.toJson(users))
+    }
+  }
+
+
+  /**
+   * WebService responsible to create a user from a json
+   */
+  def createFromJson = Action.async(parse.json) { request =>
+
+  	val createJson = request.body
+    val userJson = createJson.as[JsObject] + ("_id" -> Json.toJson(BSONObjectID.generate))
+  	
+    Json.fromJson[User](userJson) match {
+      case JsSuccess(user, _) =>
+        for {
+          users <- collection
+          lastError <- users.insert(user)
+        } yield {
+          Logger.debug(s"Successfully inserted with LastError: $lastError")
+          Created("Created 1 User")
+        }
+      case JsError(errors) =>
+        Future.successful(BadRequest("Could not build a User from the json provided. " ))
+    }
+  }
+
 }

@@ -1,7 +1,13 @@
+#APPLICATION ROUTES
 GET    /                   controllers.Application.index
 GET    /users              controllers.Application.list(f ?= "")
 GET    /users/new          controllers.Application.create
 POST   /users/save         controllers.Application.save
+
+#WEB SERVICES
+GET   /websUsers           controllers.Application.getUsersWebService(name ?= "")
+POST  /websUsers/           controllers.Application.createFromJson
+
 
 # Map static resources from the /public folder to the /assets URL path
 GET    /assets/*file           controllers.Assets.at(path="/public", file)
